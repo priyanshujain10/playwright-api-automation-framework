@@ -7,11 +7,6 @@
 ![Node.js](https://img.shields.io/badge/Node.js-43853D?style=for-the-badge&logo=node.js&logoColor=white)
 ![Allure](https://img.shields.io/badge/Allure-2E8B57?style=for-the-badge&logo=allure&logoColor=white)
 
-[![GitHub repo size](https://img.shields.io/github/repo-size/priyanshujain10/playwright-api-automation-framework)](https://github.com/priyanshujain10/playwright-api-automation-framework)
-[![GitHub stars](https://img.shields.io/github/stars/priyanshujain10/playwright-api-automation-framework)](https://github.com/priyanshujain10/playwright-api-automation-framework/stargazers)
-[![GitHub license](https://img.shields.io/github/license/priyanshujain10/playwright-api-automation-framework)](https://github.com/priyanshujain10/playwright-api-automation-framework/blob/main/LICENSE)
-[![CI](https://img.shields.io/github/actions/workflow/status/priyanshujain10/playwright-api-automation-framework/ci.yml)](https://github.com/priyanshujain10/playwright-api-automation-framework/actions)
-
 </div>
 
 ---
