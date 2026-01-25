@@ -1,0 +1,56 @@
+{
+  "name": "playwright-api-automation-framework",
+  "version": "1.0.0",
+  "description": "This repository consists of a robust API test automation framework for an apparel e-commerce website. The framework follows industry-standard design patterns, including Page Object Model (POM) adapted for API testing (Controller Pattern), and leverages Playwright with TypeScript for maximum type safety and maintainability.",
+  "main": "index.js",
+  "scripts": {
+    "pretest": "tsc --noEmit && eslint tests/**",
+    "test": "cross-env test_env=$TARGET_ENV username=$TARGET_USER password=$TARGET_PASSWORD npx playwright test",
+    "test:api": "npx playwright test tests/api --project=ecommerce-api",
+    "test:smoke": "npx playwright test --grep @Smoke",
+    "test:regression": "npx playwright test --grep @Regression",
+    "test:product": "npx playwright test tests/product",
+    "test:cart": "npx playwright test tests/cart",
+    "test:order": "npx playwright test tests/order",
+    "show:report": "npx playwright show-report ./reports/html-report",
+    "allure:generate": "npx allure generate ./reports/allure-results --clean",
+    "allure:open": "npx allure open",
+    "allure:serve": "npx allure serve ./reports/allure-results",
+    "lint": "eslint tests/** src/**",
+    "lint:fix": "eslint tests/** src/** --fix"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/priyanshujain10/playwright-api-automation-framework.git"
+  },
+  "keywords": [
+    "playwright",
+    "api-testing",
+    "ecommerce",
+    "typescript"
+  ],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/priyanshujain10/playwright-api-automation-framework/issues"
+  },
+  "homepage": "https://github.com/priyanshujain10/playwright-api-automation-framework#readme",
+  "devDependencies": {
+    "@playwright/test": "^1.58.0",
+    "@types/node": "^25.0.10",
+    "@typescript-eslint/eslint-plugin": "^8.53.1",
+    "@typescript-eslint/parser": "^8.53.1",
+    "ajv": "^8.17.1",
+    "allure-commandline": "^2.36.0",
+    "allure-playwright": "^3.4.5",
+    "cross-env": "^10.1.0",
+    "dotenv": "^17.2.3",
+    "eslint": "^9.39.2",
+    "eslint-plugin-playwright": "^2.5.0",
+    "fs": "^0.0.1-security",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.1",
+    "winston": "^3.19.0"
+  }
+}

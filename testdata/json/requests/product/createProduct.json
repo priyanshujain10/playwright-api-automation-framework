@@ -1,0 +1,44 @@
+{
+  "name": "Rolex Submariner Date",
+  "description": "The iconic diving watch with exceptional performance and timeless elegance",
+  "sku": "ROLEX-SUB-001",
+  "brand": "Rolex",
+  "category": "Watches",
+  "subcategory": "Diving Watches",
+  "price": 8000.00,
+  "salePrice": null,
+  "currency": "USD",
+  "images": [
+    "https://example.com/images/rolex-submariner-black-1.jpg",
+    "https://example.com/images/rolex-submariner-black-2.jpg"
+  ],
+  "variants": [
+    {
+      "size": "40mm",
+      "color": "Black",
+      "sku": "ROLEX-SUB-001-BLK-40",
+      "quantity": 10
+    },
+    {
+      "size": "41mm",
+      "color": "Black",
+      "sku": "ROLEX-SUB-001-BLK-41",
+      "quantity": 15
+    }
+  ],
+  "features": [
+    "Automatic movement",
+    "Water-resistant to 300m",
+    "Cerachrom bezel",
+    "Luminova dial markers"
+  ],
+  "specifications": {
+    "material": "Oystersteel",
+    "movement": "Calibre 3135",
+    "dial": "Black",
+    "bracelet": "Oyster"
+  },
+  "tags": ["luxury", "diving", "automatic", "watch"],
+  "isActive": true,
+  "isFeatured": true
+}

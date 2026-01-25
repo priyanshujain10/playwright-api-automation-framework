@@ -1,0 +1,9 @@
+export const INVALID_PRODUCT_ID = "Invalid product ID provided";
+export const PRODUCT_NOT_FOUND = "Product not found";
+export const INSUFFICIENT_STOCK = "Insufficient stock available";
+export const INVALID_QUANTITY = "Quantity must be greater than 0";
+export const CART_EMPTY = "Cart is empty";
+export const INVALID_PAYMENT_METHOD = "Invalid payment method";
+export const ORDER_NOT_FOUND = "Order not found";
+export const UNAUTHORIZED = "Unauthorized access";
+export const INVALID_CREDENTIALS = "Invalid email or password";
