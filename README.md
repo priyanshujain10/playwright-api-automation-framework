@@ -298,8 +298,7 @@ This project is licensed under the **ISC License** - see the [LICENSE](LICENSE) 
 ## 👨‍💻 Author
 
 **Priyanshu Jain**
-- 📧 [Email](mailto:priyanshu@example.com)
-- 🔗 [LinkedIn](https://linkedin.com/in/priyanshujain)
+- 🔗 [LinkedIn](https://www.linkedin.com/in/priyanshu-jain-9506a61a7/)
 - 🐙 [GitHub](https://github.com/priyanshujain10)
 
 ---
