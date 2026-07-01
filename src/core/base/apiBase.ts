@@ -2,12 +2,18 @@ import { APIRequestContext, APIResponse } from '@playwright/test';
 import { getDefaultHeaders } from '../helpers/api.helper';
 import { DeleteOptions, GetOptions, PostOptions, PutOptions } from '../models/userDefinedTypes';
 import { logger } from "../utils/loggingUtil/logger";
+import { WritableController } from './controllerRoles.interfaces';
 
 /**
  * Base class for API interactions using Playwright's APIRequestContext.
  * Provides common HTTP methods (GET, POST, PUT, PATCH, DELETE) with automatic header handling and logging.
+ *
+ * Liskov Substitution Principle (LSP): every controller (ProductController,
+ * CartController, OrderController, ...) extends APIBase without narrowing
+ * parameter types or widening return types, so any controller can stand in
+ * anywhere an APIBase/WritableController is expected (see controller.fixture.ts).
  */
-export class APIBase {
+export class APIBase implements WritableController {
     protected request: APIRequestContext;
     protected BASE_URL = `${process.env.API_BASE_URL}${process.env.API_VERSION}`;
     

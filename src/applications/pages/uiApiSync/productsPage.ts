@@ -1,20 +1,23 @@
 import { Locator, Page } from "@playwright/test";
 import { GotoOptions } from "@core/models/userDefinedTypes";
+import { BasePage } from "../base.page";
 
 /**
  * Page Object for the live product catalog page on automationexercise.com.
  * Backs the UI-API synergy demo in `tests/uiApiSync/` — selectors are tied
  * to the real DOM of the public site, not fabricated placeholders.
+ *
+ * Extends BasePage (LSP) so it is substitutable anywhere a BasePage is
+ * expected, honoring the same goto() contract as every other page object.
  */
-export class ProductsPage {
-    readonly page: Page;
+export class ProductsPage extends BasePage {
     private readonly url = "https://automationexercise.com/products";
     private readonly searchInput: Locator;
     private readonly searchButton: Locator;
     private readonly productCards: Locator;
 
     constructor(page: Page) {
-        this.page = page;
+        super(page);
         this.searchInput = page.locator("#search_product");
         this.searchButton = page.locator("#submit_search");
         this.productCards = page.locator(".productinfo.text-center");
