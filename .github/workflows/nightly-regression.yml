@@ -1,0 +1,372 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Nightly Regression Pipeline
+#
+# Purpose  : Full regression suite executed every night against QA and Staging
+#            in parallel. Provides confidence that no defects were introduced
+#            by the day's merges. Gate for the following morning's stand-up.
+#
+# Trigger  : Scheduled (01:00 UTC daily) | manual workflow_dispatch.
+# Strategy : QA and STG run in parallel to halve total wall-clock time.
+#            If either environment fails the quality gate, the overall run
+#            is marked failed and the team is notified.
+# Reports  : Allure HTML report is generated and deployed to GitHub Pages
+#            under a run-specific path so historical runs are preserved.
+# On fail  : The team is notified via a GitHub Step Summary + optional Slack
+#            webhook. No automatic code change is triggered.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: "Nightly Regression"
+
+on:
+  schedule:
+    # 01:00 UTC — runs after all typical business-hours deployments have settled.
+    - cron: "0 1 * * *"
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Target environment (leave blank to run both QA + STG)"
+        required: false
+        default: "both"
+        type: choice
+        options:
+          - both
+          - qa
+          - stg
+      notify_slack:
+        description: "Send Slack notification on completion?"
+        required: false
+        default: "true"
+        type: boolean
+
+# Only one nightly run at a time; do not cancel an in-progress run —
+# we want the full picture even if a second trigger arrives.
+concurrency:
+  group: nightly-regression
+  cancel-in-progress: false
+
+permissions:
+  contents: write   # required by peaceiris/actions-gh-pages to push to gh-pages
+  checks: write
+  pages: write
+  id-token: write
+
+env:
+  NODE_VERSION: "20.x"
+  PASS_RATE_THRESHOLD: "95" # Minimum acceptable pass rate (%) for nightly runs
+
+jobs:
+  # ─── Job 1: Regression — QA ────────────────────────────────────────────────
+  regression-qa:
+    name: "Regression Suite — QA"
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'schedule' ||
+      github.event.inputs.environment == 'both' ||
+      github.event.inputs.environment == 'qa'
+    environment: qa
+    outputs:
+      total: ${{ steps.gate.outputs.total }}
+      passed: ${{ steps.gate.outputs.passed }}
+      failed: ${{ steps.gate.outputs.failed }}
+      pass_rate: ${{ steps.gate.outputs.pass_rate }}
+      gate_status: ${{ steps.gate.outputs.gate_status }}
+
+    env:
+      TARGET_ENV: qa
+      API_TOKEN: ${{ secrets.QA_API_TOKEN }}
+      API_KEY: ${{ secrets.QA_API_KEY }}
+      TEST_USER_EMAIL: ${{ secrets.QA_TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.QA_TEST_USER_PASSWORD }}
+      ADMIN_EMAIL: ${{ secrets.QA_ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.QA_ADMIN_PASSWORD }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full regression suite
+        run: npm run test:regression
+
+      - name: Evaluate quality gate
+        id: gate
+        if: always()
+        run: |
+          python3 - <<'PYEOF'
+          import xml.etree.ElementTree as ET, sys, os
+
+          threshold = float(os.environ.get("PASS_RATE_THRESHOLD", "95"))
+          junit_path = "reports/test-results/junit-results.xml"
+
+          if not os.path.exists(junit_path):
+              print("::error::JUnit report missing — cannot evaluate quality gate.")
+              for key in ["total","passed","failed","pass_rate","gate_status"]:
+                  print(f"::set-output name={key}::0" if key != "gate_status" else "::set-output name=gate_status::FAILED")
+              sys.exit(1)
+
+          root = ET.parse(junit_path).getroot()
+          suites = root.findall(".//testsuite") or [root]
+
+          total = failures = errors = skipped = 0
+          for s in suites:
+              total    += int(s.get("tests",    0))
+              failures += int(s.get("failures", 0))
+              errors   += int(s.get("errors",   0))
+              skipped  += int(s.get("skipped",  0))
+
+          bad    = failures + errors
+          passed = total - bad - skipped
+          rate   = (passed / total * 100) if total > 0 else 0.0
+          status = "PASSED" if rate >= threshold else "FAILED"
+
+          # Export as job outputs for the quality-gate aggregator job
+          env_file = os.environ.get("GITHUB_OUTPUT", "")
+          if env_file:
+              with open(env_file, "a") as f:
+                  f.write(f"total={total}\n")
+                  f.write(f"passed={passed}\n")
+                  f.write(f"failed={bad}\n")
+                  f.write(f"pass_rate={rate:.2f}\n")
+                  f.write(f"gate_status={status}\n")
+
+          print(f"QA — Total: {total} | Passed: {passed} | Failed: {bad} | Rate: {rate:.2f}% | Gate: {status}")
+
+          if status == "FAILED":
+              print(f"::error::QA quality gate failed. Pass rate {rate:.1f}% < threshold {threshold}%")
+              sys.exit(1)
+          PYEOF
+
+      - name: Upload QA test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-qa-results-run${{ github.run_number }}
+          path: |
+            reports/html-report/
+            reports/test-results/junit-results.xml
+            reports/allure-results/
+            reports/logs/
+          retention-days: 30
+
+  # ─── Job 2: Regression — Staging ──────────────────────────────────────────
+  regression-stg:
+    name: "Regression Suite — Staging"
+    runs-on: ubuntu-latest
+    if: >
+      github.event_name == 'schedule' ||
+      github.event.inputs.environment == 'both' ||
+      github.event.inputs.environment == 'stg'
+    environment: stg
+    outputs:
+      total: ${{ steps.gate.outputs.total }}
+      passed: ${{ steps.gate.outputs.passed }}
+      failed: ${{ steps.gate.outputs.failed }}
+      pass_rate: ${{ steps.gate.outputs.pass_rate }}
+      gate_status: ${{ steps.gate.outputs.gate_status }}
+
+    env:
+      TARGET_ENV: stg
+      API_TOKEN: ${{ secrets.STG_API_TOKEN }}
+      API_KEY: ${{ secrets.STG_API_KEY }}
+      TEST_USER_EMAIL: ${{ secrets.STG_TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.STG_TEST_USER_PASSWORD }}
+      ADMIN_EMAIL: ${{ secrets.STG_ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.STG_ADMIN_PASSWORD }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full regression suite
+        run: npm run test:regression
+
+      - name: Evaluate quality gate
+        id: gate
+        if: always()
+        run: |
+          python3 - <<'PYEOF'
+          import xml.etree.ElementTree as ET, sys, os
+
+          threshold = float(os.environ.get("PASS_RATE_THRESHOLD", "95"))
+          junit_path = "reports/test-results/junit-results.xml"
+
+          if not os.path.exists(junit_path):
+              print("::error::JUnit report missing — cannot evaluate quality gate.")
+              sys.exit(1)
+
+          root = ET.parse(junit_path).getroot()
+          suites = root.findall(".//testsuite") or [root]
+
+          total = failures = errors = skipped = 0
+          for s in suites:
+              total    += int(s.get("tests",    0))
+              failures += int(s.get("failures", 0))
+              errors   += int(s.get("errors",   0))
+              skipped  += int(s.get("skipped",  0))
+
+          bad    = failures + errors
+          passed = total - bad - skipped
+          rate   = (passed / total * 100) if total > 0 else 0.0
+          status = "PASSED" if rate >= threshold else "FAILED"
+
+          env_file = os.environ.get("GITHUB_OUTPUT", "")
+          if env_file:
+              with open(env_file, "a") as f:
+                  f.write(f"total={total}\n")
+                  f.write(f"passed={passed}\n")
+                  f.write(f"failed={bad}\n")
+                  f.write(f"pass_rate={rate:.2f}\n")
+                  f.write(f"gate_status={status}\n")
+
+          print(f"STG — Total: {total} | Passed: {passed} | Failed: {bad} | Rate: {rate:.2f}% | Gate: {status}")
+
+          if status == "FAILED":
+              print(f"::error::STG quality gate failed. Pass rate {rate:.1f}% < threshold {threshold}%")
+              sys.exit(1)
+          PYEOF
+
+      - name: Upload STG test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-stg-results-run${{ github.run_number }}
+          path: |
+            reports/html-report/
+            reports/test-results/junit-results.xml
+            reports/allure-results/
+            reports/logs/
+          retention-days: 30
+
+  # ─── Job 3: Aggregate Quality Gate & Nightly Summary ─────────────────────
+  # Collects pass/fail data from both environments and writes a consolidated
+  # summary to the GitHub Actions job summary tab.
+  # ──────────────────────────────────────────────────────────────────────────
+  nightly-summary:
+    name: "Nightly Summary & Quality Gate"
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [regression-qa, regression-stg]
+
+    steps:
+      - name: Build consolidated summary
+        run: |
+          QA_TOTAL="${{ needs.regression-qa.outputs.total }}"
+          QA_PASSED="${{ needs.regression-qa.outputs.passed }}"
+          QA_FAILED="${{ needs.regression-qa.outputs.failed }}"
+          QA_RATE="${{ needs.regression-qa.outputs.pass_rate }}"
+          QA_GATE="${{ needs.regression-qa.outputs.gate_status }}"
+          QA_JOB="${{ needs.regression-qa.result }}"
+
+          STG_TOTAL="${{ needs.regression-stg.outputs.total }}"
+          STG_PASSED="${{ needs.regression-stg.outputs.passed }}"
+          STG_FAILED="${{ needs.regression-stg.outputs.failed }}"
+          STG_RATE="${{ needs.regression-stg.outputs.pass_rate }}"
+          STG_GATE="${{ needs.regression-stg.outputs.gate_status }}"
+          STG_JOB="${{ needs.regression-stg.result }}"
+
+          QA_ICON="✅"
+          STG_ICON="✅"
+          [[ "$QA_JOB"  != "success" ]] && QA_ICON="❌"
+          [[ "$STG_JOB" != "success" ]] && STG_ICON="❌"
+
+          OVERALL="✅ PASSED"
+          if [[ "$QA_JOB" != "success" || "$STG_JOB" != "success" ]]; then
+            OVERALL="❌ FAILED — Action required before next release"
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY <<SUMMARY
+          # 🌙 Nightly Regression — Run #${{ github.run_number }}
+
+          **Date:** $(date -u '+%Y-%m-%d %H:%M UTC')
+          **Overall Result:** ${OVERALL}
+          **Pass Rate Threshold:** ${{ env.PASS_RATE_THRESHOLD }}%
+
+          ## Results by Environment
+
+          | Environment | Total | ✅ Passed | ❌ Failed | Pass Rate | Gate |
+          |-------------|-------|-----------|-----------|-----------|------|
+          | ${QA_ICON} QA  | ${QA_TOTAL:-N/A}  | ${QA_PASSED:-N/A}  | ${QA_FAILED:-N/A}  | ${QA_RATE:-N/A}%  | ${QA_GATE:-SKIPPED}  |
+          | ${STG_ICON} STG | ${STG_TOTAL:-N/A} | ${STG_PASSED:-N/A} | ${STG_FAILED:-N/A} | ${STG_RATE:-N/A}% | ${STG_GATE:-SKIPPED} |
+
+          ## Artifacts
+          - 📊 [QA Test Report](../../actions/runs/${{ github.run_id }}/artifacts) — `nightly-qa-results-run${{ github.run_number }}`
+          - 📊 [STG Test Report](../../actions/runs/${{ github.run_id }}/artifacts) — `nightly-stg-results-run${{ github.run_number }}`
+          SUMMARY
+
+      - name: Fail job if any environment gate failed
+        run: |
+          QA_RESULT="${{ needs.regression-qa.result }}"
+          STG_RESULT="${{ needs.regression-stg.result }}"
+          # 'skipped' is acceptable (e.g. single-env manual run); 'failure' is not.
+          if [[ "$QA_RESULT" == "failure" || "$STG_RESULT" == "failure" ]]; then
+            echo "::error::Nightly quality gate FAILED. One or more environments did not meet the ${PASS_RATE_THRESHOLD}% pass rate threshold."
+            exit 1
+          fi
+          echo "Nightly quality gate PASSED."
+
+  # ─── Job 4: Publish Allure Report to GitHub Pages ─────────────────────────
+  # Generates Allure report from QA artifacts and deploys to GitHub Pages.
+  # Each nightly run gets its own path: /nightly/run-<N>/index.html
+  # Requires GitHub Pages to be enabled on the repository (Settings → Pages).
+  # ──────────────────────────────────────────────────────────────────────────
+  publish-allure-report:
+    name: "Publish Allure Report"
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [regression-qa]
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies (for allure-commandline)
+        run: npm ci
+
+      - name: Download QA Allure results artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: nightly-qa-results-run${{ github.run_number }}
+          path: downloaded-artifacts
+
+      - name: Generate Allure HTML report
+        run: |
+          mkdir -p reports/allure-results
+          cp -r downloaded-artifacts/allure-results/. reports/allure-results/ 2>/dev/null || true
+          npx allure generate ./reports/allure-results --clean -o ./reports/allure-report
+
+      - name: Deploy report to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./reports/allure-report
+          destination_dir: nightly/run-${{ github.run_number }}
+          commit_message: "ci: publish nightly Allure report for run #${{ github.run_number }}"

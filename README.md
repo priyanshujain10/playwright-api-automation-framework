@@ -33,6 +33,13 @@ A robust, scalable API test automation framework for e-commerce applications bui
 
 Perfect for testing RESTful APIs with comprehensive coverage of CRUD operations, authentication, and complex business workflows.
 
+> **Scope note:** The Flipkart-domain controllers/tests (`product`, `cart`, `order`, `payment`,
+> `user`, `inventory`) target a fictional backend and exist to demonstrate architecture, design
+> patterns, and test technique coverage — verified via type-checking and linting, not live
+> execution. The `uiApiSync` module (see below) is the one part of this repo that runs against a
+> real, live, public API + UI, and is included specifically to demonstrate how API calls can
+> ground and de-flake UI assertions.
+
 ---
 
 ## 🎯 Features
@@ -88,8 +95,10 @@ playwright-api-automation-framework/
 │   │   ├── 📁 controllers/          # API Controllers (Controller Pattern)
 │   │   │   ├── cart.controller.ts
 │   │   │   ├── product.controller.ts
+│   │   │   ├── uiApiSync/          # Client for the live public demo API (see below)
 │   │   │   └── ...
-│   │   └── 📁 pages/               # UI Pages (if needed)
+│   │   └── 📁 pages/
+│   │       └── uiApiSync/          # Page Object for the UI-API synergy demo
 │   ├── 📁 core/
 │   │   ├── 📁 base/                # Base classes
 │   │   ├── 📁 fixtures/            # Test fixtures
@@ -252,6 +261,36 @@ BROWSER=chrome|firefox|webkit
 - **File Logging**: Rotating log files
 - **Console Logging**: Real-time test output
 - **Log Levels**: ERROR, WARN, INFO, DEBUG
+
+---
+
+## 🔗 API Tests Supporting UI Tests
+
+E2E/UI suites are the slowest and flakiest layer of a test pyramid — every extra DOM assertion is
+another chance for copy changes, timing, or unrelated UI bugs to fail a test that has nothing to
+do with what it's meant to verify. This framework includes a small, live, runnable example of a
+pattern that reduces that risk: **use the API as the source of truth for what a UI assertion
+should expect, instead of hardcoding it.**
+
+See `tests/uiApiSync/productCatalog.uiApiSync.test.ts`:
+
+1. `exerciseProductsController.searchProduct(term)` calls the real product-search API and treats
+   the response as ground truth.
+2. `productsPage` (a Page Object) drives a real browser to the same search.
+3. The test asserts the **UI renders what the API returned** — not a fixed expected string.
+
+Benefits over a UI-only test:
+- If the catalog data changes, the test doesn't need updating — it stays correct because it
+  reads its own expectations from the API on every run.
+- Business-rule bugs (wrong price, wrong name) are caught the same way regardless of whether the
+  UI or the backend introduced them.
+- The API call is fast and reliable; only the minimum necessary interaction is left to the
+  (slower, less deterministic) browser layer.
+
+Run it directly against the live target:
+```bash
+npm run test:ui-api-sync
+```
 
 ---
 

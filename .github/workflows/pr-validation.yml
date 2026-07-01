@@ -1,0 +1,169 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# PR Validation Pipeline
+#
+# Purpose  : Fast-feedback gate for every pull request. Blocks merges unless
+#            static analysis passes and all @Smoke tests pass on QA.
+# Trigger  : Pull requests opened, updated, or re-opened against main/develop.
+# SLA      : < 10 minutes end-to-end to avoid blocking developers.
+# On fail  : PR merge is blocked. Developer must fix before re-pushing.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: "PR Validation"
+
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened]
+
+# Cancel any in-flight run for the same PR when a new commit is pushed.
+# Prevents queuing of redundant runs and conserves runner minutes.
+concurrency:
+  group: pr-validation-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  checks: write
+  pull-requests: write
+
+env:
+  NODE_VERSION: "20.x"
+
+jobs:
+  # ─── Job 1: Static Analysis ────────────────────────────────────────────────
+  # Runs TypeScript type-checking and ESLint in parallel (via a single job).
+  # This is the fastest failing signal — no test infra needed.
+  # ──────────────────────────────────────────────────────────────────────────
+  static-checks:
+    name: "Static Analysis (TypeScript + ESLint)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies (clean install)
+        run: npm ci
+
+      - name: TypeScript — strict type-check (no emit)
+        run: npx tsc --noEmit
+
+      - name: ESLint — lint source and test files
+        run: npm run lint
+
+  # ─── Job 2: Smoke Tests on QA ──────────────────────────────────────────────
+  # Runs @Smoke-tagged API tests against the QA environment.
+  # Only starts after static-checks pass (fail-fast principle).
+  # Uses a GitHub Environment ("qa") so secrets are scoped per environment.
+  # ──────────────────────────────────────────────────────────────────────────
+  smoke-tests:
+    name: "Smoke Tests — QA"
+    runs-on: ubuntu-latest
+    needs: static-checks
+    environment: qa
+
+    env:
+      TARGET_ENV: qa
+      API_TOKEN: ${{ secrets.QA_API_TOKEN }}
+      API_KEY: ${{ secrets.QA_API_KEY }}
+      TEST_USER_EMAIL: ${{ secrets.QA_TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.QA_TEST_USER_PASSWORD }}
+      ADMIN_EMAIL: ${{ secrets.QA_ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.QA_ADMIN_PASSWORD }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies (clean install)
+        run: npm ci
+
+      # Only Chromium is needed for API tests; downloading all browsers wastes ~2 min.
+      - name: Install Playwright Chromium only
+        run: npx playwright install --with-deps chromium
+
+      - name: Run @Smoke tests
+        run: npm run test:smoke
+
+      # ─── Quality Gate ─────────────────────────────────────────────────────
+      # Policy: Zero failures allowed on a PR (all smoke tests must pass).
+      # Parses the JUnit XML produced by Playwright's junit reporter.
+      # ──────────────────────────────────────────────────────────────────────
+      - name: "Quality Gate — 0 failures on PR (pass rate must be 100%)"
+        if: always()
+        run: |
+          python3 - <<'PYEOF'
+          import xml.etree.ElementTree as ET, sys, os
+
+          junit_path = "reports/test-results/junit-results.xml"
+          if not os.path.exists(junit_path):
+              print("::error::JUnit report not found — tests may not have produced output.")
+              sys.exit(1)
+
+          root = ET.parse(junit_path).getroot()
+          # Handle both <testsuites> and bare <testsuite> root elements
+          suites = root.findall(".//testsuite") or [root]
+
+          total = failures = errors = skipped = 0
+          for s in suites:
+              total    += int(s.get("tests",    0))
+              failures += int(s.get("failures", 0))
+              errors   += int(s.get("errors",   0))
+              skipped  += int(s.get("skipped",  0))
+
+          bad    = failures + errors
+          passed = total - bad - skipped
+          rate   = (passed / total * 100) if total > 0 else 0.0
+
+          # Write a job summary table visible directly in the GitHub Actions UI
+          summary = f"""## PR Smoke Test — Quality Gate
+
+          | Metric     | Value        |
+          |------------|-------------|
+          | Environment | QA          |
+          | Total Tests | {total}     |
+          | ✅ Passed  | {passed}     |
+          | ❌ Failed  | {failures}   |
+          | 💥 Errors  | {errors}     |
+          | ⏭  Skipped | {skipped}    |
+          | Pass Rate  | **{rate:.1f}%** |
+          | Threshold  | **100%**     |
+          """
+          step_summary = os.environ.get("GITHUB_STEP_SUMMARY", "")
+          if step_summary:
+              with open(step_summary, "a") as f:
+                  f.write(summary)
+
+          if bad > 0:
+              print(f"::error::QUALITY GATE FAILED — {bad} test(s) failed. "
+                    f"Pass rate: {rate:.1f}% (required: 100%). "
+                    f"Smoke tests must be green before merging a PR.")
+              sys.exit(1)
+
+          print(f"QUALITY GATE PASSED — Pass rate: {rate:.1f}% (threshold: 100%)")
+          PYEOF
+
+      - name: Upload test artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          # Include the run attempt number so reruns produce unique artifact names.
+          name: smoke-results-pr${{ github.event.pull_request.number }}-attempt${{ github.run_attempt }}
+          path: |
+            reports/html-report/
+            reports/test-results/junit-results.xml
+            reports/allure-results/
+            reports/logs/
+          retention-days: 7

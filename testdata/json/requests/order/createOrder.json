@@ -1,26 +1,26 @@
 {
   "shippingAddress": {
-    "firstName": "John",
-    "lastName": "Doe",
-    "addressLine1": "123 Main Street",
-    "addressLine2": "Apt 4B",
-    "city": "Boston",
-    "state": "MA",
-    "zipCode": "02101",
-    "country": "US",
-    "phone": "+1-555-0123"
+    "firstName": "Rahul",
+    "lastName": "Sharma",
+    "addressLine1": "Flat 4B, Prestige Towers",
+    "addressLine2": "MG Road",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "zipCode": "560001",
+    "country": "IN",
+    "phone": "+91-98765-43210"
   },
   "billingAddress": {
-    "firstName": "John",
-    "lastName": "Doe",
-    "addressLine1": "123 Main Street",
-    "addressLine2": "Apt 4B",
-    "city": "Boston",
-    "state": "MA",
-    "zipCode": "02101",
-    "country": "US",
-    "phone": "+1-555-0123"
+    "firstName": "Rahul",
+    "lastName": "Sharma",
+    "addressLine1": "Flat 4B, Prestige Towers",
+    "addressLine2": "MG Road",
+    "city": "Bengaluru",
+    "state": "Karnataka",
+    "zipCode": "560001",
+    "country": "IN",
+    "phone": "+91-98765-43210"
   },
-  "paymentMethod": "credit_card",
+  "paymentMethod": "UPI",
   "shippingMethod": "standard"
 }

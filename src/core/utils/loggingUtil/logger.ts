@@ -1,3 +1,4 @@
+import path from 'path';
 import winston from 'winston';
 import logConfig from '../../../../logger.config.json'
 
@@ -7,6 +8,8 @@ winston.addColors({
     warn: 'yellow',
     error: 'red',
 });
+
+const LOG_DIR = path.join('reports', path.dirname(logConfig?.logger?.file?.filename ?? 'logs/api-automation.log'));
 
 /**
  * Determines the log level for the logger based on environment variables or config.
@@ -39,12 +42,16 @@ export const logger = winston.createLogger({
                 })
             )
         }),
-        new winston.transports.File({ 
-            filename: 'reports/logs/api-automation.log', 
-            level: 'error' 
+        new winston.transports.File({
+            filename: path.join(LOG_DIR, 'api-automation.log'),
+            level: 'error',
+            maxsize: logConfig?.logger?.file?.maxsize,
+            maxFiles: logConfig?.logger?.file?.maxFiles
         }),
-        new winston.transports.File({ 
-            filename: 'reports/logs/combined.log' 
+        new winston.transports.File({
+            filename: path.join(LOG_DIR, 'combined.log'),
+            maxsize: logConfig?.logger?.file?.maxsize,
+            maxFiles: logConfig?.logger?.file?.maxFiles
         })
     ]
 });

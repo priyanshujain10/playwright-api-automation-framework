@@ -26,7 +26,7 @@ test.describe('Product API - GET Operations', { tag: ["@Product", "@GET", "@API"
     test('[GET] Verify get product by ID returns correct data', {
         tag: ["@Smoke", "@API", "@GetProductById"]
     }, async ({ productController }) => {
-        const productId = "PROD-12345";
+        const productId = "FKPRT-SMSG-GS24-001";
         logger.info(`Test: Get product by ID: ${productId}`);
         
         const response = await productController.getProductById(productId);
@@ -69,9 +69,9 @@ test.describe('Product API - GET Operations', { tag: ["@Product", "@GET", "@API"
         tag: ["@Regression", "@API", "@SearchProducts"]
     }, async ({ productController }) => {
         const searchParams = {
-            category: "Shoes",
-            minPrice: 50,
-            maxPrice: 100,
+            category: "Smartphones",
+            minPrice: 20000,
+            maxPrice: 100000,
             inStock: true
         };
         

@@ -36,7 +36,7 @@
     },
     "currency": {
       "type": "string",
-      "enum": ["USD", "EUR", "GBP"]
+      "enum": ["INR", "USD", "EUR", "GBP"]
     },
     "images": {
       "type": "array",

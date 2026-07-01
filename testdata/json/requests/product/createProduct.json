@@ -1,44 +1,62 @@
 {
-  "name": "Rolex Submariner Date",
-  "description": "The iconic diving watch with exceptional performance and timeless elegance",
-  "sku": "ROLEX-SUB-001",
-  "brand": "Rolex",
-  "category": "Watches",
-  "subcategory": "Diving Watches",
-  "price": 8000.00,
-  "salePrice": null,
-  "currency": "USD",
+  "name": "Samsung Galaxy S24",
+  "description": "Next-generation flagship smartphone with 50MP camera, Snapdragon 8 Gen 3 processor, and Galaxy AI features",
+  "sku": "FKPRT-SMSG-GS24-128-BLK",
+  "brand": "Samsung",
+  "category": "Smartphones",
+  "subcategory": "Android Phones",
+  "price": 74999.00,
+  "salePrice": 69999.00,
+  "currency": "INR",
   "images": [
-    "https://example.com/images/rolex-submariner-black-1.jpg",
-    "https://example.com/images/rolex-submariner-black-2.jpg"
+    "https://rukminim2.flixcart.com/image/samsung-galaxy-s24-onyx-black-1.jpg",
+    "https://rukminim2.flixcart.com/image/samsung-galaxy-s24-onyx-black-2.jpg"
   ],
   "variants": [
     {
-      "size": "40mm",
-      "color": "Black",
-      "sku": "ROLEX-SUB-001-BLK-40",
-      "quantity": 10
+      "size": "128GB",
+      "color": "Onyx Black",
+      "sku": "FKPRT-SMSG-GS24-128-BLK",
+      "quantity": 50
     },
     {
-      "size": "41mm",
-      "color": "Black",
-      "sku": "ROLEX-SUB-001-BLK-41",
-      "quantity": 15
+      "size": "256GB",
+      "color": "Onyx Black",
+      "sku": "FKPRT-SMSG-GS24-256-BLK",
+      "quantity": 30
+    },
+    {
+      "size": "128GB",
+      "color": "Marble Grey",
+      "sku": "FKPRT-SMSG-GS24-128-GRY",
+      "quantity": 25
+    },
+    {
+      "size": "256GB",
+      "color": "Cobalt Violet",
+      "sku": "FKPRT-SMSG-GS24-256-VIO",
+      "quantity": 20
     }
   ],
   "features": [
-    "Automatic movement",
-    "Water-resistant to 300m",
-    "Cerachrom bezel",
-    "Luminova dial markers"
+    "6.2-inch Dynamic AMOLED 2X, 120Hz display",
+    "50MP primary + 12MP ultra-wide + 10MP telephoto camera",
+    "Snapdragon 8 Gen 3 for Galaxy",
+    "4000 mAh battery with 25W fast charging",
+    "IP68 dust and water resistance",
+    "Galaxy AI: Circle to Search, Live Translate, Chat Assist"
   ],
   "specifications": {
-    "material": "Oystersteel",
-    "movement": "Calibre 3135",
-    "dial": "Black",
-    "bracelet": "Oyster"
+    "display": "6.2 inches, Dynamic AMOLED 2X, 2340x1080",
+    "processor": "Snapdragon 8 Gen 3 for Galaxy",
+    "ram": "8 GB",
+    "storage": "128 GB / 256 GB UFS 3.1",
+    "battery": "4000 mAh",
+    "os": "Android 14 with One UI 6.1",
+    "connectivity": "5G, Wi-Fi 7, Bluetooth 5.3, NFC",
+    "dimensions": "147 x 70.6 x 7.6 mm, 167g"
   },
-  "tags": ["luxury", "diving", "automatic", "watch"],
+  "tags": ["smartphone", "samsung", "android", "5g", "flagship", "galaxy-ai"],
   "isActive": true,
   "isFeatured": true
 }

@@ -77,10 +77,10 @@ test.describe('Cart API - Add to Cart Operations', { tag: ["@Cart", "@POST", "@A
         logger.info('Test: Add item with insufficient stock');
         
         const cartItem = {
-            productId: "PROD-12345",
+            productId: "FKPRT-SMSG-GS24-001",
             quantity: 99999, // Unrealistic quantity
-            size: "US 9",
-            color: "Black"
+            size: "128GB",
+            color: "Onyx Black"
         };
         
         const response = await cartController.addToCart(cartItem);
@@ -100,8 +100,8 @@ test.describe('Cart API - Add to Cart Operations', { tag: ["@Cart", "@POST", "@A
         const cartItem = {
             productId: "INVALID-PRODUCT-ID",
             quantity: 1,
-            size: "US 9",
-            color: "Black"
+            size: "128GB",
+            color: "Onyx Black"
         };
         
         const response = await cartController.addToCart(cartItem);

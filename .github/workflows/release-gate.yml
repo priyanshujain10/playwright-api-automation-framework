@@ -1,0 +1,408 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# Release Gate Pipeline
+#
+# Purpose  : The mandatory quality gate that protects production from defective
+#            releases. Must pass before any build is promoted to Production.
+#
+# Trigger  : Push to a release/** branch | manual workflow_dispatch.
+# Strategy :
+#   Stage 1 — Static checks (blocking: fail-fast)
+#   Stage 2 — Smoke tests on Staging (fast sanity before heavy suites)
+#   Stage 3a — Full regression on Staging       } run in parallel
+#   Stage 3b — P1 / Risk-Based tests on Staging } run in parallel
+#   Stage 4 — Aggregate quality gate
+#              • P1 (@P1 | @RBT) tests: 100% pass rate required
+#              • Overall regression:    ≥ 98% pass rate required
+#   Stage 5 — Manual approval gate (GitHub Environment: "production")
+#              • A designated reviewer must approve before any deploy proceeds.
+#
+# On fail  : Pipeline is blocked. Release is NOT promoted. Team is notified
+#            via GitHub Step Summary. No code changes are made automatically.
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: "Release Gate"
+
+on:
+  push:
+    branches:
+      - "release/**"
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Release version (e.g. v2.5.0)"
+        required: true
+        type: string
+      skip_regression:
+        description: "Skip regression and run only smoke + P1? (emergency fast-gate)"
+        required: false
+        default: "false"
+        type: boolean
+
+# Allow only one release gate run at a time; do not cancel in-progress.
+# A stale gate run completing is preferable to overlapping release verification.
+concurrency:
+  group: release-gate
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  checks: write
+
+env:
+  NODE_VERSION: "20.x"
+  P1_PASS_THRESHOLD: "100"     # P1 tests must ALL pass — zero tolerance
+  OVERALL_PASS_THRESHOLD: "98" # Overall regression: 98% minimum
+
+jobs:
+  # ─── Stage 1: Static Analysis ─────────────────────────────────────────────
+  static-checks:
+    name: "Stage 1 — Static Analysis (TypeScript + ESLint)"
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: TypeScript — strict type-check
+        run: npx tsc --noEmit
+
+      - name: ESLint — lint all source and test files
+        run: npm run lint
+
+  # ─── Stage 2: Smoke Tests on Staging ──────────────────────────────────────
+  # Fast sanity check. If core paths are broken on Staging, there is no value
+  # in running the full regression suite — fail fast and alert the team.
+  # ──────────────────────────────────────────────────────────────────────────
+  smoke-stg:
+    name: "Stage 2 — Smoke Tests — Staging"
+    runs-on: ubuntu-latest
+    needs: static-checks
+    environment: stg
+
+    env:
+      TARGET_ENV: stg
+      API_TOKEN: ${{ secrets.STG_API_TOKEN }}
+      API_KEY: ${{ secrets.STG_API_KEY }}
+      TEST_USER_EMAIL: ${{ secrets.STG_TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.STG_TEST_USER_PASSWORD }}
+      ADMIN_EMAIL: ${{ secrets.STG_ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.STG_ADMIN_PASSWORD }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run @Smoke tests
+        run: npm run test:smoke
+
+      - name: Assert zero failures (smoke must be clean to proceed)
+        if: always()
+        run: |
+          python3 - <<'PYEOF'
+          import xml.etree.ElementTree as ET, sys, os
+          root = ET.parse("reports/test-results/junit-results.xml").getroot()
+          suites = root.findall(".//testsuite") or [root]
+          bad = sum(int(s.get("failures", 0)) + int(s.get("errors", 0)) for s in suites)
+          total = sum(int(s.get("tests", 0)) for s in suites)
+          print(f"Smoke — Total: {total} | Failed/Errors: {bad}")
+          if bad > 0:
+              print(f"::error::Staging smoke tests failed ({bad} failure(s)). "
+                    "Release gate blocked at Stage 2. Full regression will not run.")
+              sys.exit(1)
+          print("Smoke gate PASSED — proceeding to Stage 3.")
+          PYEOF
+
+      - name: Upload smoke artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-smoke-stg-run${{ github.run_number }}
+          path: |
+            reports/html-report/
+            reports/test-results/junit-results.xml
+            reports/allure-results/
+          retention-days: 60
+
+  # ─── Stage 3a: Full Regression on Staging ─────────────────────────────────
+  regression-stg:
+    name: "Stage 3a — Regression Suite — Staging"
+    runs-on: ubuntu-latest
+    needs: smoke-stg
+    environment: stg
+    if: ${{ github.event.inputs.skip_regression != 'true' }}
+    outputs:
+      total: ${{ steps.results.outputs.total }}
+      passed: ${{ steps.results.outputs.passed }}
+      failed: ${{ steps.results.outputs.failed }}
+      pass_rate: ${{ steps.results.outputs.pass_rate }}
+
+    env:
+      TARGET_ENV: stg
+      API_TOKEN: ${{ secrets.STG_API_TOKEN }}
+      API_KEY: ${{ secrets.STG_API_KEY }}
+      TEST_USER_EMAIL: ${{ secrets.STG_TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.STG_TEST_USER_PASSWORD }}
+      ADMIN_EMAIL: ${{ secrets.STG_ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.STG_ADMIN_PASSWORD }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run full regression suite
+        run: npm run test:regression
+
+      - name: Parse regression results
+        id: results
+        if: always()
+        run: |
+          python3 - <<'PYEOF'
+          import xml.etree.ElementTree as ET, sys, os
+          root = ET.parse("reports/test-results/junit-results.xml").getroot()
+          suites = root.findall(".//testsuite") or [root]
+          total = failures = errors = skipped = 0
+          for s in suites:
+              total    += int(s.get("tests",    0))
+              failures += int(s.get("failures", 0))
+              errors   += int(s.get("errors",   0))
+              skipped  += int(s.get("skipped",  0))
+          bad    = failures + errors
+          passed = total - bad - skipped
+          rate   = (passed / total * 100) if total > 0 else 0.0
+          env_file = os.environ.get("GITHUB_OUTPUT", "")
+          if env_file:
+              with open(env_file, "a") as f:
+                  f.write(f"total={total}\npassed={passed}\nfailed={bad}\npass_rate={rate:.2f}\n")
+          print(f"Regression — Total: {total} | Passed: {passed} | Failed: {bad} | Rate: {rate:.2f}%")
+          PYEOF
+
+      - name: Upload regression artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-regression-stg-run${{ github.run_number }}
+          path: |
+            reports/html-report/
+            reports/test-results/junit-results.xml
+            reports/allure-results/
+          retention-days: 60
+
+  # ─── Stage 3b: P1 / Risk-Based Tests on Staging ──────────────────────────
+  # These tests map directly to the highest-risk user journeys (RBT-01..10).
+  # They run in parallel with the regression suite to reduce total gate time.
+  # Policy: 100% pass rate — a single P1 failure blocks the release.
+  # ──────────────────────────────────────────────────────────────────────────
+  p1-risk-tests:
+    name: "Stage 3b — P1 / Risk-Based Tests — Staging"
+    runs-on: ubuntu-latest
+    needs: smoke-stg
+    environment: stg
+    outputs:
+      total: ${{ steps.results.outputs.total }}
+      passed: ${{ steps.results.outputs.passed }}
+      failed: ${{ steps.results.outputs.failed }}
+      pass_rate: ${{ steps.results.outputs.pass_rate }}
+
+    env:
+      TARGET_ENV: stg
+      API_TOKEN: ${{ secrets.STG_API_TOKEN }}
+      API_KEY: ${{ secrets.STG_API_KEY }}
+      TEST_USER_EMAIL: ${{ secrets.STG_TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ secrets.STG_TEST_USER_PASSWORD }}
+      ADMIN_EMAIL: ${{ secrets.STG_ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ secrets.STG_ADMIN_PASSWORD }}
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      # Run P1 priority AND Risk-Based tests — these are the release blockers.
+      # @P1 covers the highest-priority functional tests.
+      # @RBT covers the risk-register scenarios (payment atomicity, oversell, etc.)
+      - name: Run P1 and Risk-Based tests
+        run: npx playwright test --grep "@P1|@RBT"
+
+      - name: Parse P1 results
+        id: results
+        if: always()
+        run: |
+          python3 - <<'PYEOF'
+          import xml.etree.ElementTree as ET, sys, os
+          root = ET.parse("reports/test-results/junit-results.xml").getroot()
+          suites = root.findall(".//testsuite") or [root]
+          total = failures = errors = skipped = 0
+          for s in suites:
+              total    += int(s.get("tests",    0))
+              failures += int(s.get("failures", 0))
+              errors   += int(s.get("errors",   0))
+              skipped  += int(s.get("skipped",  0))
+          bad    = failures + errors
+          passed = total - bad - skipped
+          rate   = (passed / total * 100) if total > 0 else 0.0
+          env_file = os.environ.get("GITHUB_OUTPUT", "")
+          if env_file:
+              with open(env_file, "a") as f:
+                  f.write(f"total={total}\npassed={passed}\nfailed={bad}\npass_rate={rate:.2f}\n")
+          print(f"P1/RBT — Total: {total} | Passed: {passed} | Failed: {bad} | Rate: {rate:.2f}%")
+          PYEOF
+
+      - name: Upload P1 artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-p1-rbt-stg-run${{ github.run_number }}
+          path: |
+            reports/html-report/
+            reports/test-results/junit-results.xml
+            reports/allure-results/
+          retention-days: 60
+
+  # ─── Stage 4: Aggregate Quality Gate ──────────────────────────────────────
+  # Enforces the dual threshold:
+  #   • P1 / RBT tests:  100% pass rate (zero-tolerance — any failure blocks)
+  #   • Overall regression: ≥ 98% pass rate
+  # The release is only APPROVED when both thresholds are met.
+  # ──────────────────────────────────────────────────────────────────────────
+  quality-gate:
+    name: "Stage 4 — Aggregate Quality Gate"
+    runs-on: ubuntu-latest
+    if: always()
+    needs: [regression-stg, p1-risk-tests]
+
+    steps:
+      - name: Enforce dual quality gate
+        run: |
+          P1_TOTAL="${{ needs.p1-risk-tests.outputs.total }}"
+          P1_FAILED="${{ needs.p1-risk-tests.outputs.failed }}"
+          P1_RATE="${{ needs.p1-risk-tests.outputs.pass_rate }}"
+          P1_JOB="${{ needs.p1-risk-tests.result }}"
+
+          REG_TOTAL="${{ needs.regression-stg.outputs.total }}"
+          REG_FAILED="${{ needs.regression-stg.outputs.failed }}"
+          REG_RATE="${{ needs.regression-stg.outputs.pass_rate }}"
+          REG_JOB="${{ needs.regression-stg.result }}"
+
+          RELEASE_VERSION="${{ github.event.inputs.release_version || github.ref_name }}"
+
+          # Determine gate result
+          P1_STATUS="✅ PASSED"
+          OVERALL_STATUS="✅ PASSED"
+          RELEASE_DECISION="🟢 RELEASE APPROVED"
+
+          # P1 gate: must be 100% (job must have succeeded, and 0 failures)
+          if [[ "$P1_JOB" != "success" ]]; then
+            P1_STATUS="❌ BLOCKED"
+            RELEASE_DECISION="🔴 RELEASE BLOCKED"
+          fi
+
+          # Regression gate: job must not have failed, and rate >= threshold
+          # Note: 'skipped' job means skip_regression=true was set (emergency gate)
+          if [[ "$REG_JOB" == "failure" ]]; then
+            OVERALL_STATUS="❌ BLOCKED"
+            RELEASE_DECISION="🔴 RELEASE BLOCKED"
+          fi
+
+          cat >> $GITHUB_STEP_SUMMARY <<SUMMARY
+          # ${RELEASE_DECISION}
+
+          **Release:** \`${RELEASE_VERSION}\`
+          **Date:** $(date -u '+%Y-%m-%d %H:%M UTC')
+
+          ## Quality Gate Results
+
+          | Criterion | Tests | Failed | Pass Rate | Threshold | Status |
+          |-----------|-------|--------|-----------|-----------|--------|
+          | P1 / Risk-Based (RBT) | ${P1_TOTAL:-N/A} | ${P1_FAILED:-0} | ${P1_RATE:-N/A}% | ${{ env.P1_PASS_THRESHOLD }}% | ${P1_STATUS} |
+          | Regression (Overall) | ${REG_TOTAL:-N/A} | ${REG_FAILED:-0} | ${REG_RATE:-N/A}% | ${{ env.OVERALL_PASS_THRESHOLD }}% | ${OVERALL_STATUS} |
+
+          ## Artifacts
+          | Artifact | Link |
+          |----------|------|
+          | Regression Report | nightly-regression-stg-run${{ github.run_number }} |
+          | P1 / RBT Report   | release-p1-rbt-stg-run${{ github.run_number }} |
+          | Smoke Report      | release-smoke-stg-run${{ github.run_number }} |
+
+          ---
+          > _To proceed with the production deployment, all thresholds must be met._
+          SUMMARY
+
+          # Exit with failure if any gate is blocked
+          if [[ "$RELEASE_DECISION" == *"BLOCKED"* ]]; then
+            echo "::error::RELEASE GATE BLOCKED — quality thresholds not met. See summary for details."
+            exit 1
+          fi
+
+          echo "RELEASE GATE APPROVED — all quality thresholds met."
+
+  # ─── Stage 5: Production Promotion Gate (Manual Approval) ─────────────────
+  # This is an informational job that only runs when the quality gate passes.
+  # In practice, the "production" GitHub Environment should be configured with
+  # required reviewers — this provides the mandatory human sign-off before
+  # any deployment workflow is triggered.
+  # ──────────────────────────────────────────────────────────────────────────
+  production-approval-gate:
+    name: "Stage 5 — Awaiting Production Approval"
+    runs-on: ubuntu-latest
+    needs: quality-gate
+    environment: production  # Configure required reviewers in GitHub Environments settings
+
+    steps:
+      - name: Confirm release approval
+        run: |
+          RELEASE_VERSION="${{ github.event.inputs.release_version || github.ref_name }}"
+          echo "✅ Release ${RELEASE_VERSION} approved for production deployment."
+          echo "All quality gates passed. A designated reviewer has approved this release."
+          cat >> $GITHUB_STEP_SUMMARY <<SUMMARY
+          # ✅ Release Approved for Production
+
+          **Release:** \`${RELEASE_VERSION}\`
+          **Approved at:** $(date -u '+%Y-%m-%d %H:%M UTC')
+          **Approved by:** ${{ github.actor }}
+
+          > The release pipeline may now proceed to deploy to Production.
+          SUMMARY

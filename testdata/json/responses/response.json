@@ -1,3 +1,14 @@
 {
-    "response": "Placeholder response data"
+  "success": false,
+  "data": null,
+  "error": {
+    "code": "RESOURCE_NOT_FOUND",
+    "message": "The requested resource was not found.",
+    "details": {}
+  },
+  "meta": {
+    "requestId": "req-abc123",
+    "timestamp": "2026-01-01T00:00:00.000Z",
+    "version": "v1"
+  }
 }

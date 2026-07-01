@@ -1,4 +1,7 @@
 {
-    "userId": 12345,
-    "includeDetails": true
+    "email": "rahul.sharma.qa@flipkart-test.com",
+    "password": "SecurePass@123",
+    "firstName": "Rahul",
+    "lastName": "Sharma",
+    "phone": "+91-98765-43210"
 }

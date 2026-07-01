@@ -36,7 +36,10 @@ const config: PlaywrightTestConfig = {
     video: process.env.CI ? "off" : "retain-on-failure",
     actionTimeout: ACTION_TIMEOUT,
     trace: "retain-on-failure",
-    ignoreHTTPSErrors: true,
+    // ignoreHTTPSErrors is intentionally enabled for the dev/staging environments only.
+    // The env/.env.<environment> file controls TARGET_ENV; production targets must
+    // never set this flag — TLS validation is enforced by the staging gateway config.
+    ignoreHTTPSErrors: process.env.TARGET_ENV !== "production",
     extraHTTPHeaders: {
       Accept: "application/json",
       "Content-Type": "application/json",
@@ -74,38 +77,45 @@ const config: PlaywrightTestConfig = {
   ],
 
   projects: [
+    // ─── Auth Setup (prerequisite for all API projects) ──────────────────────
     {
       name: "setup",
       testDir: "./tests/",
       testMatch: /.*\.setup\.ts/,
       use: { ...use },
     },
+    // ─── Full API Suite (all tests, default run target) ───────────────────────
     {
-      name: "default",
-      use: { ...use,
-      storageState: getStorageStateConfig(),
-       },
+      name: "flipkart-api",
+      testDir: "./tests/",
+      testIgnore: /uiApiSync/,
+      use: { ...use, storageState: getStorageStateConfig() },
       dependencies: ["setup"],
     },
+    // ─── Smoke: fast pre-deployment health check (<8 min) ────────────────────
     {
-      name: "ecommerce-api",
+      name: "api-smoke",
       testDir: "./tests/",
-      use: { ...use },
-      dependencies: ["setup"],
-    },
-    {
-      name: "api-smoke-tests",
-      testDir: "./tests/",
+      testIgnore: /uiApiSync/,
       grep: /@Smoke/,
       use: { ...use },
       dependencies: ["setup"],
     },
+    // ─── Regression: full release-gate suite ─────────────────────────────────
     {
-      name: "api-regression-tests",
+      name: "api-regression",
       testDir: "./tests/",
+      testIgnore: /uiApiSync/,
       grep: /@Regression/,
       use: { ...use },
       dependencies: ["setup"],
+    },
+    // ─── UI-API Synergy demo: live browser + live public API, no fictional
+    //     backend/auth dependency ─────────────────────────────────────────────
+    {
+      name: "ui-api-sync",
+      testDir: "./tests/uiApiSync",
+      use: { ...use },
     },
   ],
 };

@@ -5,6 +5,7 @@ import { OrderController } from "../order.controller";
 import { UserController } from "../user.controller";
 import { PaymentController } from "../payment.controller";
 import { InventoryController } from "../inventory.controller";
+import { ExerciseProductsController } from "../uiApiSync/exerciseProducts.controller";
 
 export type APIFixtures = {
     productController: ProductController;
@@ -13,6 +14,7 @@ export type APIFixtures = {
     userController: UserController;
     paymentController: PaymentController;
     inventoryController: InventoryController;
+    exerciseProductsController: ExerciseProductsController;
 };
 
 export const test = baseTest.extend<APIFixtures>({
@@ -33,6 +35,9 @@ export const test = baseTest.extend<APIFixtures>({
     },
     inventoryController: async ({ request }, use) => {
         await use(new InventoryController(request));
+    },
+    exerciseProductsController: async ({ request }, use) => {
+        await use(new ExerciseProductsController(request));
     },
 });
 

@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["paymentId", "status", "amount"],
+  "properties": {
+    "paymentId": {
+      "type": "string"
+    },
+    "orderId": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "processing", "completed", "failed", "refunded", "partially_refunded"]
+    },
+    "amount": {
+      "type": "number",
+      "minimum": 0.01
+    },
+    "currency": {
+      "type": "string"
+    },
+    "paymentMethodId": {
+      "type": ["string", "null"]
+    },
+    "paymentMethodType": {
+      "type": ["string", "null"]
+    },
+    "transactionId": {
+      "type": ["string", "null"]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  }
+}

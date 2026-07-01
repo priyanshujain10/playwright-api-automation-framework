@@ -1,6 +1,6 @@
 import { APIRequestContext, APIResponse } from "@playwright/test";
 import { APIBase } from "@core/base/apiBase";
-import { RequestBuilderUtility } from "../controllers/helper/requestBuilder.utitlity";
+import { RequestBuilderUtility } from "../controllers/helper/requestBuilder.utility";
 
 /**
  * Controller for managing order operations via API.

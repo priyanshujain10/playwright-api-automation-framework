@@ -1,121 +1,163 @@
-name: E-Commerce API Tests
+# ─────────────────────────────────────────────────────────────────────────────
+# Ad-Hoc / Manual Test Runner
+#
+# Purpose  : On-demand test execution for exploratory, debug, or investigative
+#            runs. Supports full flexibility: choose environment, suite, and
+#            browser. Does NOT enforce quality gates — results are informational.
+#
+# When to use:
+#   • Investigating a bug reported in a specific environment
+#   • Manually verifying a hotfix before the automated release gate runs
+#   • Running a targeted suite (e.g. @Payment only) outside normal schedules
+#   • Cross-browser verification for a specific feature area
+#
+# Note: This workflow does NOT replace the automated gates:
+#   • PR merges     → pr-validation.yml
+#   • Nightly runs  → nightly-regression.yml
+#   • Pre-release   → release-gate.yml
+#   • Post-deploy   → post-deploy-smoke.yml
+# ─────────────────────────────────────────────────────────────────────────────
+
+name: "Ad-Hoc Test Runner"
 
 on:
-  push:
-    branches: [ main, develop ]
-  pull_request:
-    branches: [ main, develop ]
-  schedule:
-    # Run nightly regression at 2 AM UTC
-    - cron: '0 2 * * *'
   workflow_dispatch:
     inputs:
       environment:
-        description: 'Environment to test'
+        description: "Target environment"
         required: true
-        default: 'qa'
+        default: "qa"
         type: choice
         options:
           - dev
           - qa
-          - staging
+          - stg
       test_suite:
-        description: 'Test suite to run'
+        description: "Test suite to run"
         required: true
-        default: 'smoke'
+        default: "smoke"
         type: choice
         options:
           - smoke
           - regression
+          - product
+          - cart
+          - order
           - all
       browser:
-        description: 'Browser to run Playwright tests'
+        description: "Browser"
         required: false
-        default: 'chromium'
+        default: "chromium"
         type: choice
         options:
           - chromium
           - firefox
           - webkit
+      grep_tag:
+        description: "Custom grep tag (e.g. @Payment — overrides suite selection)"
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  checks: write
+
+env:
+  NODE_VERSION: "20.x"
 
 jobs:
-  api-tests:
+  ad-hoc-tests:
+    name: "[${{ github.event.inputs.environment }}] ${{ github.event.inputs.grep_tag || github.event.inputs.test_suite }} — ${{ github.event.inputs.browser }}"
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        node-version: [18.x]
-    
+    environment: ${{ github.event.inputs.environment }}
+
+    env:
+      TARGET_ENV: ${{ github.event.inputs.environment }}
+      BROWSER: ${{ github.event.inputs.browser || 'chromium' }}
+      # Secrets are selected based on the chosen environment using expressions.
+      # dev/qa share the QA secret set; stg uses the STG set.
+      API_TOKEN: ${{ github.event.inputs.environment == 'stg' && secrets.STG_API_TOKEN || secrets.QA_API_TOKEN }}
+      API_KEY: ${{ github.event.inputs.environment == 'stg' && secrets.STG_API_KEY || secrets.QA_API_KEY }}
+      TEST_USER_EMAIL: ${{ github.event.inputs.environment == 'stg' && secrets.STG_TEST_USER_EMAIL || secrets.QA_TEST_USER_EMAIL }}
+      TEST_USER_PASSWORD: ${{ github.event.inputs.environment == 'stg' && secrets.STG_TEST_USER_PASSWORD || secrets.QA_TEST_USER_PASSWORD }}
+      ADMIN_EMAIL: ${{ github.event.inputs.environment == 'stg' && secrets.STG_ADMIN_EMAIL || secrets.QA_ADMIN_EMAIL }}
+      ADMIN_PASSWORD: ${{ github.event.inputs.environment == 'stg' && secrets.STG_ADMIN_PASSWORD || secrets.QA_ADMIN_PASSWORD }}
+
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-      
-      - name: Setup Node.js
-        uses: actions/setup-node@v3
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
         with:
-          node-version: ${{ matrix.node-version }}
-          cache: 'npm'
-      
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
       - name: Install dependencies
         run: npm ci
-      
-      - name: Install Playwright browsers
+
+      - name: Install Playwright — ${{ github.event.inputs.browser || 'chromium' }}
         run: npx playwright install --with-deps ${{ github.event.inputs.browser || 'chromium' }}
-      
-      - name: Run smoke tests
-        if: ${{ github.event.inputs.test_suite == 'smoke' || github.event_name == 'pull_request' }}
-        env:
-          TARGET_ENV: ${{ github.event.inputs.environment || 'qa' }}
-          API_TOKEN: ${{ secrets.API_TOKEN }}
-          API_KEY: ${{ secrets.API_KEY }}
+
+      # ── Custom grep tag overrides suite selection ────────────────────────
+      - name: Run tests — custom grep (${{ github.event.inputs.grep_tag }})
+        if: ${{ github.event.inputs.grep_tag != '' }}
+        run: npx playwright test --grep "${{ github.event.inputs.grep_tag }}"
+
+      - name: Run tests — smoke suite
+        if: ${{ github.event.inputs.grep_tag == '' && github.event.inputs.test_suite == 'smoke' }}
         run: npm run test:smoke
-      
-      - name: Run regression tests
-        if: ${{ github.event.inputs.test_suite == 'regression' || github.event_name == 'schedule' }}
-        env:
-          TARGET_ENV: ${{ github.event.inputs.environment || 'qa' }}
-          API_TOKEN: ${{ secrets.API_TOKEN }}
-          API_KEY: ${{ secrets.API_KEY }}
+
+      - name: Run tests — regression suite
+        if: ${{ github.event.inputs.grep_tag == '' && github.event.inputs.test_suite == 'regression' }}
         run: npm run test:regression
-      
+
+      - name: Run tests — product suite
+        if: ${{ github.event.inputs.grep_tag == '' && github.event.inputs.test_suite == 'product' }}
+        run: npm run test:product
+
+      - name: Run tests — cart suite
+        if: ${{ github.event.inputs.grep_tag == '' && github.event.inputs.test_suite == 'cart' }}
+        run: npm run test:cart
+
+      - name: Run tests — order suite
+        if: ${{ github.event.inputs.grep_tag == '' && github.event.inputs.test_suite == 'order' }}
+        run: npm run test:order
+
       - name: Run all tests
-        if: ${{ github.event.inputs.test_suite == 'all' }}
-        env:
-          TARGET_ENV: ${{ github.event.inputs.environment || 'qa' }}
-          API_TOKEN: ${{ secrets.API_TOKEN }}
-          API_KEY: ${{ secrets.API_KEY }}
+        if: ${{ github.event.inputs.grep_tag == '' && github.event.inputs.test_suite == 'all' }}
         run: npm test
-      
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: playwright-report
-          path: reports/html-report/
-          retention-days: 30
-      
-      - name: Upload Allure results
-        if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: allure-results
-          path: reports/allure-results/
-          retention-days: 30
-      
-      - name: Generate Allure report
+
+      - name: Generate Allure HTML report
         if: always()
         run: npm run allure:generate
-      
-      - name: Upload Allure report
+
+      - name: Write ad-hoc run summary
         if: always()
-        uses: actions/upload-artifact@v3
-        with:
-          name: allure-report
-          path: allure-report/
-          retention-days: 30
-      
-      - name: Publish test results
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY <<SUMMARY
+          # Ad-Hoc Test Run Summary
+
+          | Field         | Value |
+          |---------------|-------|
+          | Environment   | \`${{ github.event.inputs.environment }}\` |
+          | Suite / Tag   | \`${{ github.event.inputs.grep_tag || github.event.inputs.test_suite }}\` |
+          | Browser       | \`${{ github.event.inputs.browser || 'chromium' }}\` |
+          | Triggered By  | @${{ github.actor }} |
+          | Run Number    | #${{ github.run_number }} |
+
+          > ℹ️ This is an informational ad-hoc run. Quality gates are not enforced.
+          > For gated pipelines, see: pr-validation, nightly-regression, release-gate.
+          SUMMARY
+
+      - name: Upload test artifacts
         if: always()
-        uses: EnricoMi/publish-unit-test-result-action@v2
+        uses: actions/upload-artifact@v4
         with:
-          files: reports/test-results/*.xml
+          name: adhoc-${{ github.event.inputs.environment }}-${{ github.event.inputs.test_suite }}-run${{ github.run_number }}
+          path: |
+            reports/html-report/
+            reports/allure-report/
+            reports/test-results/junit-results.xml
+            reports/logs/
+          retention-days: 14

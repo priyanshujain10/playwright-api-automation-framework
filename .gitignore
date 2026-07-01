@@ -1,6 +1,6 @@
 node_modules/
 reports/
-
+.vscode/
 # Playwright
 /test-results/
 /playwright-report/
