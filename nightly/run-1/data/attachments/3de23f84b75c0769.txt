@@ -1,0 +1,15 @@
+2026-07-02 04:59:08 [info]: EG-C-03: Update quantity of item not in cart — should 404, not create item {
+  "service": "ecommerce-api-tests"
+}
+2026-07-02 04:59:08 [info]: PUT https://api-qa.ecommerce-example.com/v1/cart/items/ITEM-DOES-NOT-EXIST-999 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "data": {
+      "quantity": 5
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+2026-07-02 04:59:16 [info]: RT-R-02: Poll order status until it stabilises or max attempts reached {
+  "service": "ecommerce-api-tests"
+}
+2026-07-02 04:59:16 [info]: GET https://api-qa.ecommerce-example.com/v1/products?pageSize=1 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
