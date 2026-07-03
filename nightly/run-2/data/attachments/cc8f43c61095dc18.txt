@@ -1,0 +1,13 @@
+2026-07-03 04:43:39 [info]: Test: Profile should be inaccessible after logout {
+  "service": "ecommerce-api-tests"
+}
+2026-07-03 04:43:39 [info]: POST https://api-qa.ecommerce-example.com/v1/auth/logout {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "data": {},
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

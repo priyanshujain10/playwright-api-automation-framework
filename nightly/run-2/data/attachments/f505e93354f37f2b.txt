@@ -1,0 +1,18 @@
+2026-07-03 04:42:10 [info]: BVA-Q-04: quantity = 98 (just below maximum) {
+  "service": "ecommerce-api-tests"
+}
+2026-07-03 04:42:10 [info]: POST https://api-qa.ecommerce-example.com/v1/cart/items {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "data": {
+      "productId": "FKPRT-SMSG-GS24-001",
+      "quantity": 98,
+      "size": "128GB",
+      "color": "Onyx Black"
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

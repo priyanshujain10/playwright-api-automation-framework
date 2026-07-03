@@ -1,0 +1,12 @@
+2026-07-03 04:43:28 [info]: RT-R-03: Demonstrate POST is not idempotent — two POSTs create two entries {
+  "service": "ecommerce-api-tests"
+}
+2026-07-03 04:43:28 [info]: GET https://api-qa.ecommerce-example.com/v1/products?pageSize=1 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

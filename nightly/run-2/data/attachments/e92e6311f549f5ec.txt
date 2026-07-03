@@ -1,0 +1,12 @@
+2026-07-03 04:42:20 [info]: BVA-PS-04: pageSize = 49 (just below maximum) {
+  "service": "ecommerce-api-tests"
+}
+2026-07-03 04:42:20 [info]: GET https://api-qa.ecommerce-example.com/v1/products?pageSize=49 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

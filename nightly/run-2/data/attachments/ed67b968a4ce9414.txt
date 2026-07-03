@@ -1,0 +1,12 @@
+2026-07-03 04:42:35 [info]: Test: Check stock for FKPRT-SMSG-GS24-001 size=128GB color=Onyx Black {
+  "service": "ecommerce-api-tests"
+}
+2026-07-03 04:42:35 [info]: GET https://api-qa.ecommerce-example.com/v1/inventory/check?productId=FKPRT-SMSG-GS24-001&size=128GB&color=Onyx+Black {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

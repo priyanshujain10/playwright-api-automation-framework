@@ -1,0 +1,12 @@
+2026-07-03 04:43:48 [info]: FKT-09: searchProducts with params={"category":"Electronics","color":"Glacier Blue","inStock":true} {
+  "service": "ecommerce-api-tests"
+}
+2026-07-03 04:43:48 [info]: GET https://api-qa.ecommerce-example.com/v1/products/search?category=Electronics&color=Glacier+Blue&inStock=true {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

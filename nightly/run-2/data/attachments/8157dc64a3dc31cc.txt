@@ -1,0 +1,21 @@
+2026-07-03 04:42:33 [info]: IDEM-DEL-03: Verify DELETE address is stable after resource is gone {
+  "service": "ecommerce-api-tests"
+}
+2026-07-03 04:42:33 [info]: POST https://api-qa.ecommerce-example.com/v1/users/addresses {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "data": {
+      "firstName": "Idempotency",
+      "lastName": "Test",
+      "addressLine1": "789 Test Avenue",
+      "city": "Chicago",
+      "state": "IL",
+      "zipCode": "60601",
+      "country": "US"
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
