@@ -1,0 +1,12 @@
+2026-07-04 04:36:09 [info]: Test: Check stock for an out-of-stock product {
+  "service": "ecommerce-api-tests"
+}
+2026-07-04 04:36:09 [info]: GET https://api-qa.ecommerce-example.com/v1/inventory/check?productId=FKPRT-OUT-OF-STOCK-001 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

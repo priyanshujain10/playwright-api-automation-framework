@@ -1,0 +1,13 @@
+2026-07-04 04:36:36 [info]: EG-P-09: Double refund — second call should be idempotent or rejected {
+  "service": "ecommerce-api-tests"
+}
+2026-07-04 04:36:36 [info]: POST https://api-qa.ecommerce-example.com/v1/payments/PAY-REFUNDABLE-001/refund {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "data": {},
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
