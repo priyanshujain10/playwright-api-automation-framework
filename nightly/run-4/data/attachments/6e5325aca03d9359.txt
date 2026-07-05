@@ -1,0 +1,18 @@
+2026-07-05 04:57:24 [info]: GET https://api-qa.ecommerce-example.com/v1/products?pageSize=1 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
+2026-07-05 04:57:24 [info]: DELETE https://api-qa.ecommerce-example.com/v1/cart {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

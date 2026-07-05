@@ -1,0 +1,18 @@
+2026-07-05 04:58:08 [info]: EG-P-07: Missing required cardNumber field {
+  "service": "ecommerce-api-tests"
+}
+2026-07-05 04:58:08 [info]: POST https://api-qa.ecommerce-example.com/v1/payments/methods {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "data": {
+      "type": "credit_card",
+      "expiryDate": "12/2028",
+      "cvv": "123",
+      "cardholderName": "John Doe"
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

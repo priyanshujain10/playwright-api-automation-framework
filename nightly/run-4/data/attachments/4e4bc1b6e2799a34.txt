@@ -1,0 +1,12 @@
+2026-07-05 04:58:10 [info]: EP-C-02: Known category representative = "Clothing" {
+  "service": "ecommerce-api-tests"
+}
+2026-07-05 04:58:10 [info]: GET https://api-qa.ecommerce-example.com/v1/products/search?category=Clothing {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
