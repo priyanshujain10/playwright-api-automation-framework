@@ -1,0 +1,12 @@
+2026-07-06 05:13:20 [info]: EP-P-04: Single-point range representative = minPrice:74999, maxPrice:74999 (Samsung Galaxy S24 price in INR) {
+  "service": "ecommerce-api-tests"
+}
+2026-07-06 05:13:20 [info]: GET https://api-qa.ecommerce-example.com/v1/products/search?minPrice=74999&maxPrice=74999 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

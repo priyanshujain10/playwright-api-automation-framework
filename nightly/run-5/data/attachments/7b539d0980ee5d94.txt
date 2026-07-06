@@ -1,0 +1,12 @@
+2026-07-06 05:13:32 [info]: FKT-01: searchProducts with params={"category":"Smartphones","size":"128GB","color":"Onyx Black","inStock":true} {
+  "service": "ecommerce-api-tests"
+}
+2026-07-06 05:13:32 [info]: GET https://api-qa.ecommerce-example.com/v1/products/search?category=Smartphones&size=128GB&color=Onyx+Black&inStock=true {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
