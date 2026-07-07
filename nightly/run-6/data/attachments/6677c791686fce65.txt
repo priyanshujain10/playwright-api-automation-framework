@@ -1,0 +1,12 @@
+2026-07-07 04:54:13 [info]: RT-T-04: Measuring search endpoint with multiple filters {
+  "service": "ecommerce-api-tests"
+}
+2026-07-07 04:54:13 [info]: GET https://api-qa.ecommerce-example.com/v1/products/search?category=Smartphones&minPrice=20000&maxPrice=100000&inStock=true&color=Onyx+Black {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

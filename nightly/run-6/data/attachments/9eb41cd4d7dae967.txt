@@ -1,0 +1,12 @@
+2026-07-07 04:53:23 [info]: BVA-PG-04: page = 99999 (deep beyond last page) {
+  "service": "ecommerce-api-tests"
+}
+2026-07-07 04:53:23 [info]: GET https://api-qa.ecommerce-example.com/v1/products?page=99999&pageSize=10 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

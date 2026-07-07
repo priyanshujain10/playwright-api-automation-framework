@@ -1,0 +1,9 @@
+2026-07-07 04:53:37 [info]: GET https://api-qa.ecommerce-example.com/v1/products?pageSize=1 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

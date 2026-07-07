@@ -1,0 +1,12 @@
+2026-07-07 04:54:13 [info]: FKT-02: searchProducts with params={"category":"Smartphones","size":"XL","color":"Glacier Blue","inStock":false} {
+  "service": "ecommerce-api-tests"
+}
+2026-07-07 04:54:13 [info]: GET https://api-qa.ecommerce-example.com/v1/products/search?category=Smartphones&size=XL&color=Glacier+Blue&inStock=false {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

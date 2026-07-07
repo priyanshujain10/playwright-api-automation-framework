@@ -1,0 +1,12 @@
+2026-07-07 04:54:05 [info]: Test: Get products with pagination - page: 1, pageSize: 10 {
+  "service": "ecommerce-api-tests"
+}
+2026-07-07 04:54:05 [info]: GET https://api-qa.ecommerce-example.com/v1/products?page=1&pageSize=10 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
