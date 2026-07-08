@@ -1,0 +1,15 @@
+2026-07-08 04:16:23 [info]: EG-P-08: Refund exceeds original payment amount {
+  "service": "ecommerce-api-tests"
+}
+2026-07-08 04:16:23 [info]: POST https://api-qa.ecommerce-example.com/v1/payments/PAY-001/refund {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "data": {
+      "amount": 99999.99
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

@@ -1,0 +1,15 @@
+2026-07-08 04:16:14 [info]: Test: Process partial refund {
+  "service": "ecommerce-api-tests"
+}
+2026-07-08 04:16:14 [info]: POST https://api-qa.ecommerce-example.com/v1/payments/PAY-COMPLETED-002/refund {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "data": {
+      "amount": 25
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

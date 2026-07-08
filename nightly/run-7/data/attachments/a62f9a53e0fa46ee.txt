@@ -1,0 +1,17 @@
+2026-07-08 04:16:16 [info]: EG-P-04: Non-existent paymentMethodId — should 404, not 200 {
+  "service": "ecommerce-api-tests"
+}
+2026-07-08 04:16:16 [info]: POST https://api-qa.ecommerce-example.com/v1/payments {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "data": {
+      "orderId": "ORD-12345",
+      "paymentMethodId": "PM-DOES-NOT-EXIST-999999",
+      "amount": 99.99
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

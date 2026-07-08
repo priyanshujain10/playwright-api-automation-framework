@@ -1,0 +1,12 @@
+2026-07-08 04:15:41 [info]: IDEM-GET-02: Calling GET /products with params={"page":1,"pageSize":5,"sort":"price_asc"} twice {
+  "service": "ecommerce-api-tests"
+}
+2026-07-08 04:15:41 [info]: GET https://api-qa.ecommerce-example.com/v1/products?page=1&pageSize=5&sort=price_asc {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

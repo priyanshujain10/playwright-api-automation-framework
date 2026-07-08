@@ -1,0 +1,12 @@
+2026-07-08 04:15:45 [info]: BVA-PG-03: page = 2 (just above minimum) {
+  "service": "ecommerce-api-tests"
+}
+2026-07-08 04:15:45 [info]: GET https://api-qa.ecommerce-example.com/v1/products?page=1&pageSize=5 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

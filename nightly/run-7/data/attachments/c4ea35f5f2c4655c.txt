@@ -1,0 +1,17 @@
+2026-07-08 04:15:53 [info]: BVA-A-03: amount = 0.02 (just above minimum) {
+  "service": "ecommerce-api-tests"
+}
+2026-07-08 04:15:53 [info]: POST https://api-qa.ecommerce-example.com/v1/payments {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "data": {
+      "orderId": "ORD-12345",
+      "paymentMethodId": "PM-001",
+      "amount": 0.02
+    },
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}

@@ -1,0 +1,48 @@
+2026-07-08 04:16:52 [info]: RT-C-01: Fire 5 concurrent GET /products requests {
+  "service": "ecommerce-api-tests"
+}
+2026-07-08 04:16:52 [info]: GET https://api-qa.ecommerce-example.com/v1/products?page=1&pageSize=5 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
+2026-07-08 04:16:52 [info]: GET https://api-qa.ecommerce-example.com/v1/products?page=2&pageSize=5 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
+2026-07-08 04:16:52 [info]: GET https://api-qa.ecommerce-example.com/v1/products?page=3&pageSize=5 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
+2026-07-08 04:16:52 [info]: GET https://api-qa.ecommerce-example.com/v1/products?page=4&pageSize=5 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
+2026-07-08 04:16:52 [info]: GET https://api-qa.ecommerce-example.com/v1/products?page=5&pageSize=5 {
+  "service": "ecommerce-api-tests",
+  "options": {
+    "headers": {
+      "Accept": "application/json",
+      "Content-Type": "application/json"
+    }
+  }
+}
