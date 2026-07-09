@@ -1,0 +1,35 @@
+Test Automation Development in JS ecosystem
+
+Description
+Strengthen JS/TS ecosystem knowledge and TAF reliability.
+
+Recommended actions:
+
+- Review npm versioning and dependency management:
+   - Semantic versioning: major/minor/patch
+   - Difference between ^, ~, and exact versions
+   - package-lock.json
+   - npm install vs npm ci
+   - Pinning package versions
+   - Dependency update strategy
+   - Use of overrides where applicable
+
+- Review TypeScript vs JavaScript differences:
+   - Static typing vs runtime behavior
+   - Type inference
+   - Interfaces vs types
+   - Generics
+   - Transpilation
+   - tsconfig configuration
+   - Runtime limitations of TypeScript
+
+- Revisit SOLID principles, especially:
+   - LSP - Liskov Substitution Principle
+   - ISP - Interface Segregation Principle
+   - DIP - Dependency Inversion Principle
+- Apply these principles to test automation framework examples:
+   - Page objects/components
+   - API clients
+   - Fixtures
+   - Test data builders
+   - Reporting adapters
